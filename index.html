@@ -45,6 +45,56 @@
         this.text;
       }
 
+      preload() {
+        // Load the tilemap JSON and the tileset image
+        this.load.image('hexTiles', './fantasyhextiles_v3.png'); // Replace with your .png file
+        this.load.tilemapTiledJSON('hexMap', './customHex.json'); // Replace with your .json file
+      }
+
+      create() {
+        this.add.image(0, 0, 'hexTiles')
+        // Create the tilemap
+        const tilemap = this.make.tilemap({ key: 'hexMap' });
+
+        // // Add the tileset image
+        const tileset = tilemap.addTilesetImage('fantasyhextiles', 'hexTiles');
+
+        // // Create a layer from the tilemap
+        const layer = tilemap.createLayer('Base', tileset, 0, 0);
+
+
+        const xMapOffset = 6;
+        const yMapOffset = 50;
+
+        graphics = this.add.graphics(xMapOffset, yMapOffset);
+        copyGraphics = this.add.graphics(xMapOffset, yMapOffset);
+        highlightingGraphics = this.add.graphics(xMapOffset, yMapOffset);
+
+        const arcSettings = [400, 300, 200, Phaser.Math.DegToRad(90), Phaser.Math.DegToRad(180), false, '#ffffff'];
+        // new MyArc(this, ...arcSettings);
+
+        // new HexagonGridOutline(this, new HexagonAxialGrid(2, 48), 500, 500);
+        mapGrid = new RectangleGrid(60, 36, 12);
+        new HexagonGridLines(this, mapGrid, xMapOffset, yMapOffset);
+
+
+
+        this.setupInputs();
+      }
+
+      // Function to highlight a tile
+      // highlightTile(layer, tile) {
+      //   const graphics2 = this.add.graphics();
+      //   graphics2.clear(); // Clear previous highlights
+      //   graphics2.lineStyle(2, 0xff0000, 1); // Red outline
+      //   const tileWorldPos = layer.tileToWorldXY(tile.x, tile.y);
+      //   const tileWidth = layer.tileWidth;
+      //   const tileHeight = layer.tileHeight;
+
+      //   // Draw hexagon shape
+      //   graphics2.strokeHexagon(tileWorldPos.x + tileWidth / 2, tileWorldPos.y + tileHeight / 2, tileWidth / 2);
+      // }
+
       setupInputs() {
         const resizeGame = (gameSize, baseSize, displaySize, resolution) => {
             const width = gameSize.width;
@@ -115,58 +165,6 @@
             });
         });
       }
-
-
-
-      preload() {
-        // Load the tilemap JSON and the tileset image
-        this.load.image('hexTiles', './fantasyhextiles_v3.png'); // Replace with your .png file
-        this.load.tilemapTiledJSON('hexMap', './customHex.json'); // Replace with your .json file
-      }
-
-      create() {
-        this.add.image(0, 0, 'hexTiles')
-        // Create the tilemap
-        const tilemap = this.make.tilemap({ key: 'hexMap' });
-
-        // // Add the tileset image
-        const tileset = tilemap.addTilesetImage('fantasyhextiles', 'hexTiles');
-
-        // // Create a layer from the tilemap
-        const layer = tilemap.createLayer('Base', tileset, 0, 0);
-
-
-        const xMapOffset = 6;
-        const yMapOffset = 50;
-
-        graphics = this.add.graphics(xMapOffset, yMapOffset);
-        copyGraphics = this.add.graphics(xMapOffset, yMapOffset);
-        highlightingGraphics = this.add.graphics(xMapOffset, yMapOffset);
-
-        const arcSettings = [400, 300, 200, Phaser.Math.DegToRad(90), Phaser.Math.DegToRad(180), false, '#ffffff'];
-        // new MyArc(this, ...arcSettings);
-
-        // new HexagonGridOutline(this, new HexagonAxialGrid(2, 48), 500, 500);
-        mapGrid = new RectangleGrid(60, 36, 12);
-        new HexagonGridLines(this, mapGrid, xMapOffset, yMapOffset);
-
-
-
-        this.setupInputs();
-      }
-
-      // Function to highlight a tile
-      // highlightTile(layer, tile) {
-      //   const graphics2 = this.add.graphics();
-      //   graphics2.clear(); // Clear previous highlights
-      //   graphics2.lineStyle(2, 0xff0000, 1); // Red outline
-      //   const tileWorldPos = layer.tileToWorldXY(tile.x, tile.y);
-      //   const tileWidth = layer.tileWidth;
-      //   const tileHeight = layer.tileHeight;
-
-      //   // Draw hexagon shape
-      //   graphics2.strokeHexagon(tileWorldPos.x + tileWidth / 2, tileWorldPos.y + tileHeight / 2, tileWidth / 2);
-      // }
     }
 
     class MyArc extends Phaser.GameObjects.Arc {
