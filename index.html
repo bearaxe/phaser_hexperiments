@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <script src="//cdn.jsdelivr.net/npm/phaser@3.87.0/dist/phaser.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/phaser@3.87.0/dist/phaser.js"></script>
   <script src="./GridEngine.min.js"></script>
   <style>
     body {
@@ -48,7 +48,7 @@
       preload() {
         // Load the tilemap JSON and the tileset image
         this.load.image('hexTiles', './fantasyhextiles_v3.png'); // Replace with your .png file
-        this.load.tilemapTiledJSON('hexMap', './customHex.json'); // Replace with your .json file
+        this.load.tilemapTiledJSON('hexMap', './customHex2-BaseOnly.json'); // Replace with your .json file
       }
 
       create() {
