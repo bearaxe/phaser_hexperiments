@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="//cdn.jsdelivr.net/npm/phaser@3.87.0/dist/phaser.min.js"></script>
+  <script src="./GridEngine.min.js"></script>
+  <style>
+    body {
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game"></div>
+  <script>
+    var poly;
+    var graphics,
+        copyGraphics,
+        highlightingGraphics;
+    let mapGrid;
+    const useDebugScene = false;
+
+    class DebugScene extends Phaser.Scene {
+      preload() {
+        this.load.image('tiles', './debug/baseTiles.png')
+        this.load.tilemapTiledJSON('map', './debug/spriteDemo.json');
+      }
+
+      create() {
+        const map = this.make.tilemap({ key: "map" });
+        const tileset = map.addTilesetImage('Ground Layer', 'tiles');
+        console.log({tileset, map})
+        const belowLayer = map.createLayer("Ground", tileset, 0, 0);
+        const worldLayer = map.createLayer("Player Layer", tileset, 0, 0);
+        const aboveLayer = map.createLayer("Above Player", tileset, 0, 0);
+      }
+    }
+
+    class HexScene extends Phaser.Scene {
+      constructor() {
+        super('HexScene');
+
+        this.text;
+      }
+
+      setupInputs() {
+        const resizeGame = (gameSize, baseSize, displaySize, resolution) => {
+            const width = gameSize.width;
+            const height = gameSize.height;
+            this.cameras.resize(width, height); // Resize the camera to match the new size
+        }
+
+        this.scale.on('resize', resizeGame);
+
+        this.input.on('pointerup', (pointer) => {
+          // displayCoordinate(pixel) {
+            const { x, y } = pointer;
+            copyGraphics.clear();
+            mapGrid.hexes.forEach(hex => {
+                const poly = new Phaser.Geom.Polygon(
+                  hex.points.map(point => [point[0]+ xMapOffset, point[1] + yMapOffset])
+                );
+                const clicked = Phaser.Geom.Polygon.Contains(poly, x, y);
+
+                // display the clicked polygon points
+                if (clicked) {
+                  console.log(`(${hex.centerPixel.x}, ${hex.centerPixel.y})`)
+                  if(this.text) {
+                    this.text.destroy();
+                  }
+                  this.text = this.add.text(hex.centerPixel.x + xMapOffset, hex.centerPixel.y + yMapOffset, `(${hex.x}, ${hex.y})`, {
+                      font: '16px Arial',
+                      fill: '#ffffff',
+                      backgroundColor: '#000000',
+                  });
+                }
+          // }
+            })
+        });
+
+        // this.input.on('pointermove', (pointer) => {
+        //     const worldPoint = pointer.positionToCamera(this.cameras.main);
+        //     const tile = layer.getTileAtWorldXY(worldPoint.x, worldPoint.y);
+        //     if (tile) {
+        //         this.highlightTile(layer, tile);
+        //     }
+        // });
+
+
+
+
+        // Listen for pointer move
+        this.input.on('pointermove', (pointer) => {
+            const { x, y } = pointer;
+
+            // Clear the previous graphics
+            highlightingGraphics.clear();
+
+            // Loop through all polygons and draw them
+            let isHovering = false;
+            mapGrid.hexes.forEach(hex => {
+                const poly = new Phaser.Geom.Polygon(
+                  hex.points.map(point => [point[0]+ xMapOffset, point[1] + yMapOffset])
+                );
+                const hovered = Phaser.Geom.Polygon.Contains(poly, x, y);
+
+                // Highlight the hovered polygon
+                if (hovered) {
+                  highlightingGraphics.lineStyle(3, 0xffffff, 1); // Highlight stroke
+                  highlightingGraphics.strokePoints(poly.points, true);
+                  isHovering = true;
+                }
+            });
+        });
+      }
+
+
+
+      preload() {
+        // Load the tilemap JSON and the tileset image
+        this.load.image('hexTiles', './fantasyhextiles_v3.png'); // Replace with your .png file
+        this.load.tilemapTiledJSON('hexMap', './customHex.json'); // Replace with your .json file
+      }
+
+      create() {
+        this.add.image(0, 0, 'hexTiles')
+        // Create the tilemap
+        const tilemap = this.make.tilemap({ key: 'hexMap' });
+
+        // // Add the tileset image
+        const tileset = tilemap.addTilesetImage('fantasyhextiles', 'hexTiles');
+
+        // // Create a layer from the tilemap
+        const layer = tilemap.createLayer('Base', tileset, 0, 0);
+
+
+        const xMapOffset = 6;
+        const yMapOffset = 50;
+
+        graphics = this.add.graphics(xMapOffset, yMapOffset);
+        copyGraphics = this.add.graphics(xMapOffset, yMapOffset);
+        highlightingGraphics = this.add.graphics(xMapOffset, yMapOffset);
+
+        const arcSettings = [400, 300, 200, Phaser.Math.DegToRad(90), Phaser.Math.DegToRad(180), false, '#ffffff'];
+        // new MyArc(this, ...arcSettings);
+
+        // new HexagonGridOutline(this, new HexagonAxialGrid(2, 48), 500, 500);
+        mapGrid = new RectangleGrid(60, 36, 12);
+        new HexagonGridLines(this, mapGrid, xMapOffset, yMapOffset);
+
+
+
+        this.setupInputs();
+      }
+
+      // Function to highlight a tile
+      // highlightTile(layer, tile) {
+      //   const graphics2 = this.add.graphics();
+      //   graphics2.clear(); // Clear previous highlights
+      //   graphics2.lineStyle(2, 0xff0000, 1); // Red outline
+      //   const tileWorldPos = layer.tileToWorldXY(tile.x, tile.y);
+      //   const tileWidth = layer.tileWidth;
+      //   const tileHeight = layer.tileHeight;
+
+      //   // Draw hexagon shape
+      //   graphics2.strokeHexagon(tileWorldPos.x + tileWidth / 2, tileWorldPos.y + tileHeight / 2, tileWidth / 2);
+      // }
+    }
+
+    class MyArc extends Phaser.GameObjects.Arc {
+      constructor(
+        scene,
+        x,
+        y,
+        radius,
+        startAngle,
+        endAngle,
+        anticlockwise,
+        fillColor
+      ) {
+        super(
+          scene,
+          x,
+          y,
+          radius,
+          startAngle,
+          endAngle,
+          anticlockwise,
+          fillColor
+        );
+        graphics.beginPath();
+        graphics.arc(x, y, radius, startAngle, endAngle, anticlockwise);
+        graphics.fillPath();
+        scene.add.existing(this);
+      }
+    }
+
+
+    //https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
+    // function flat_hex_to_pixel(hex) {
+    //   const x = size * (3./2 * hex.q);
+    //   const y = size * (sqrt(3)/2 * hex.q + sqrt(3) * hex.r);
+    //   return {x, y};
+    // }
+
+    ///// Adapted Works
+    class TupleMap {
+      constructor() {
+        this.map = new Map();
+      }
+
+      set(key, value) {
+        return this.map.set(JSON.stringify(key), value);
+      }
+      get(key, value) {
+        return this.map.get(JSON.stringify(key), value);
+      }
+
+      clear() {
+        this.map.clear();
+      }
+
+      delete(key) {
+        return this.map.delete(JSON.stringify(key));
+      }
+
+      has(key) {
+        return this.map.has(JSON.stringify(key));
+      }
+
+      size() {
+        return this.map.size;
+      }
+
+      forEach(callbackfn, thisArg) {
+        this.map.forEach((value, key) => {
+          callbackfn.call(thisArg, value, JSON.parse(key), this);
+        });
+      }
+    }
+
+    ///// Other site code
+    class Pixel {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+      }
+
+      getOffset(offsetX, offsetY) {
+        return {
+          x: offsetX + this.x,
+          y: offsetY + this.y,
+        }
+      }
+    }
+
+    class Hexagon {
+      constructor(q,
+        r,
+        size, isShifted, xCol, yRow) {
+        this.size = size ;
+        this.radius = this.size * 1;
+        this.isShifted = isShifted;
+        this.height = 2 * this.size;
+        this.width = this.size * Math.sqrt(3)
+        this.centerPixel = this.flatHexToPixel({ q, r })
+        this.color = this.getRandomColor();
+        this.x = xCol;
+        this.y = yRow;
+
+        this.points = [];
+        this.pixels = this.getVertices();
+      }
+
+      getRandomColor() {
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+
+      /**
+       * https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
+       */
+      flatHexToPixel(hex) {
+        const x = this.size * (3. / 2 * hex.q)
+        const y = this.size * (Math.sqrt(3) / 2 * hex.q + Math.sqrt(3) * hex.r)
+        return new Pixel(x, y)
+      }
+
+      getVertices() {
+        const { x: xC, y: yC } = this.centerPixel; // Destructure the center point
+        const vertices = [];
+
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i // Convert 60° increments to radians
+          const x = (xC + this.radius * Math.cos(angle));
+          const y = (yC + this.radius * Math.sin(angle));
+          this.points.push([x,y]);
+          vertices.push(new Pixel(x, y));
+        }
+
+        return vertices;
+      }
+
+      moveVertices(vertices, deltaX, deltaY) {
+          return vertices.map(vertex => {
+              return new Pixel(vertex.x + deltaX, vertex.y + deltaY);
+          });
+      }
+
+      rotateVertices(vertices, center, angle) {
+          // Convert angle to radians
+          const radians = (Math.PI / 180) * angle;
+          const {x: cx, y: cy} = center;
+
+          // Apply rotation
+          return vertices.map(vertex => {
+              const dx = vertex.x - cx;
+              const dy = vertex.y - cy;
+
+              const rotatedX = cx + dx * Math.cos(radians) - dy * Math.sin(radians);
+              const rotatedY = cy + dx * Math.sin(radians) + dy * Math.cos(radians);
+
+              return new Pixel(rotatedX, rotatedY);
+          });
+      }
+    }
+
+
+    class HexagonAxialGrid {
+      constructor(depth, size) {
+        this.hexes = new TupleMap();
+        this.depth = Math.abs(depth)
+        for (let q = -this.depth; q <= this.depth; q++) {
+          for (let r = -this.depth; r <= this.depth; r++) {
+            if (Math.abs(q + r) <= this.depth) {
+              this.hexes.set([q, r], new Hexagon(q, r, size, false, q, r))
+            }
+          }
+        }
+      }
+
+      get(q, r) {
+        return this.hexes.get([q, r])
+      }
+
+      allHexes() {
+        const list = []
+        this.hexes.forEach((h) => {
+          list.push(h)
+        })
+        return list
+      }
+
+      outerHexes() {
+        return [
+          this.get(this.depth, 0),
+          this.get(0, this.depth),
+          this.get(-this.depth, this.depth),
+          this.get(-this.depth, 0),
+          this.get(0, -this.depth),
+          this.get(this.depth, -this.depth),
+        ]
+      }
+    }
+
+    class RectangleGrid {
+      constructor(width, length, size) {
+        this.hexes = new TupleMap();
+        this.length = Math.abs(length)
+        this.width = Math.abs(width)
+        for (let x = 0; x < this.width; x++) {
+          let yBackshift = 0;
+          for (let y = 0; y < this.length; y++) {
+            const isShifted = x % 2 == 1;
+            const yShift = isShifted? y : 0;
+            if(isShifted && yBackshift == 0){
+              yBackshift += 0.5;
+            }
+            yBackshift += 0.5;
+            const yShiftTL = isShifted?
+              (y - 0) - (x * .5) + y + (-y * .5) - yBackshift:
+              (y - 1) - (x * .5) + y + (-y * .5) - yBackshift;
+              this.hexes.set([x, y], new Hexagon(x, yShiftTL  , size, isShifted, x, y))
+          }
+        }
+      }
+
+      get(l, w) {
+        return this.hexes.get([l, w])
+      }
+
+      allHexes() {
+        const list = []
+        this.hexes.forEach((h) => {
+          list.push(h)
+        })
+        return list
+      }
+
+      outerHexes() {
+        return [
+          this.get(0, 0),
+          this.get(0, this.width),
+          this.get(this.length, 0),
+          this.get(this.length, this.width),
+        ]
+      }
+    }
+
+    class SquareGrid extends RectangleGrid {
+      constructor(depth, size) {
+        super(depth, depth, size);
+      }
+
+      outerHexes() {
+        return [
+          this.get(this.depth, 0),
+          this.get(0, this.depth),
+          this.get(-this.depth, 0),
+          this.get(0, -this.depth),
+        ]
+      }
+
+      // i understand this so little that i can't use it..... drats x.x
+      //https://www.redblobgames.com/grids/hexagons/implementation.html#offset
+      // qoffset_from_cube(offset, h) {
+      //     //assert(offset == EVEN || offset == ODD);
+      //     const col = h.q;
+      //     const row = h.r + ((h.q + offset * (h.q & 1)) / 2);
+      //     return OffsetCoord(col, row); //? need tl?
+      // }
+
+      // qoffset_to_cube(offset, h) {
+      //     //assert(offset == EVEN || offset == ODD);
+      //     const q = h.col;
+      //     const r = h.row - ((h.col + offset * (h.col & 1)) / 2);
+      //     const s = -q - r;
+      //     return Hexagon(q, r, s);
+      // }
+
+      // roffset_from_cube(offset, h) {
+      //     //assert(offset == EVEN || offset == ODD);
+      //     const col = h.q + ((h.r + offset * (h.r & 1)) / 2);
+      //     const row = h.r;
+      //     return OffsetCoord(col, row);
+      // }
+
+      // roffset_to_cube(offset, h) {
+      //     //assert(offset == EVEN || offset == ODD);
+      //     const q = h.col - ((h.row + offset * (h.row & 1)) / 2);
+      //     const r = h.row;
+      //     const s = -q - r;
+      //     return Hexagon(q, r, s);
+      // }
+    }
+
+
+    class HexagonGridOutline extends Phaser.GameObjects.Graphics {
+      constructor(scene, grid, xOffset = 0, yOffset = 0) {
+        super(scene, {})
+        const pixels = grid.outerHexes().map(h => h.centerPixel);
+        const startPixel = pixels[0]
+
+        // set a fill and line style
+        graphics.lineStyle(5, 0xffffff, 1)
+        graphics.fillStyle(0xFFFF00, 1.0);
+
+        graphics.beginPath()
+
+        const startPosition = startPixel.getOffset(xOffset, yOffset);
+        graphics.moveTo(startPosition.x, startPosition.y)
+        for (let i = 1; i <= pixels.length - 1; i++) {
+          const { x, y } = pixels[i].getOffset(xOffset, yOffset)
+          graphics.lineTo(x, y);
+        }
+        graphics.lineTo(startPosition.x, startPosition.y)
+        graphics.stroke()
+        graphics.closePath()
+        graphics.fillPath();
+        scene.add.existing(this);
+      }
+    }
+
+    class HexagonGridLines extends Phaser.GameObjects.Graphics {
+      constructor(scene, grid, xOffset = 0, yOffset = 0) {
+        super(scene, {})
+        const hexArray = grid.allHexes();
+
+        hexArray.forEach(hex => {
+          drawHexagon(hex.pixels, hex.color);
+        })
+
+        function drawHexagon(hexagonVetices, hexColor) {
+          // set a fill and line style
+          graphics.fillStyle(Phaser.Display.Color.HexStringToColor(hexColor).color, 1.0);
+
+          graphics.beginPath()
+          const startPixel = hexagonVetices[0];
+          const startPosition = startPixel.getOffset(xOffset, yOffset);
+          graphics.moveTo(startPosition.x, startPosition.y)
+          for (let i = 1; i <= hexagonVetices.length - 1; i++) {
+            const { x, y } = hexagonVetices[i].getOffset(xOffset, yOffset)
+            graphics.lineTo(x, y);
+          }
+          graphics.lineTo(startPosition.x, startPosition.y)
+          // graphics.stroke()
+          graphics.closePath()
+          graphics.fillPath();
+        }
+
+
+        scene.add.existing(this);
+      }
+    }
+
+    /////
+    const phaserConfig = {
+      type: Phaser.AUTO,
+      parent: "game",
+      width: 1080,
+      // height: 720,
+      scale: {
+          mode: Phaser.Scale.FIT, // Adjust the game size to fit the screen while maintaining aspect ratio
+          autoCenter: Phaser.Scale.CENTER_BOTH, // Center the game in the screen
+      },
+      scene: useDebugScene? DebugScene: HexScene,
+      plugins: {
+        scene: [
+          {
+            key: "gridEngine",
+            plugin: GridEngine,
+            mapping: "gridEngine",
+          },
+        ]
+      }
+    };
+
+    const game = new Phaser.Game(phaserConfig);
+  </script>
+</body>
+
+</html>

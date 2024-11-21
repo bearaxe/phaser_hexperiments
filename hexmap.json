@@ -1,0 +1,19 @@
+{ "columns":8,
+ "image":"..\/..\/..\/..\/..\/..\/..\/..\/..\/Eclipse Island Art And Maps\/Tiled Maps\/fantasyhextiles_v3.png",
+ "imageheight":288,
+ "imagewidth":256,
+ "margin":0,
+ "name":"fantasyhextiles",
+ "spacing":0,
+ "tilecount":48,
+ "tiledversion":"1.11.0",
+ "tileheight":48,
+ "tileoffset":
+    {
+     "x":0,
+     "y":2
+    },
+ "tilewidth":32,
+ "type":"tileset",
+ "version":"1.10"
+}
