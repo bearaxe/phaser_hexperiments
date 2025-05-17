@@ -20,7 +20,10 @@
         copyGraphics,
         highlightingGraphics;
     let mapGrid;
-    const useDebugScene = false;
+    const useDebugScene = false,
+      useDebugFill = false,
+      useDebugOutline = false;
+
 
     class DebugScene extends Phaser.Scene {
       preload() {
@@ -47,7 +50,7 @@
 
       preload() {
         // Load the tilemap JSON and the tileset image
-        this.load.image('hexTiles', './fantasyhextiles_v3.png'); // Replace with your .png file
+        this.load.image('hexTiles', './fantasyhextiles_v3_extruded.png'); // Replace with your .png file
         this.load.tilemapTiledJSON('hexMap', './customHex2-BaseOnly.json'); // Replace with your .json file
       }
 
@@ -57,29 +60,29 @@
         const tilemap = this.make.tilemap({ key: 'hexMap' });
 
         // // Add the tileset image
-        const tileset = tilemap.addTilesetImage('fantasyhextiles', 'hexTiles');
+        const tileset = tilemap.addTilesetImage('fantasyhextiles', 'hexTiles', 32, 48, 2, 4);
 
         // // Create a layer from the tilemap
         const layer = tilemap.createLayer('Base', tileset, 0, 0);
 
 
-        // const xMapOffset = 6;
-        // const yMapOffset = 50;
+        const xMapOffset = 16;
+        const yMapOffset = 72;
 
-        // graphics = this.add.graphics(xMapOffset, yMapOffset);
-        // copyGraphics = this.add.graphics(xMapOffset, yMapOffset);
-        // highlightingGraphics = this.add.graphics(xMapOffset, yMapOffset);
+        graphics = this.add.graphics(xMapOffset, yMapOffset);
+        copyGraphics = this.add.graphics(xMapOffset, yMapOffset);
+        highlightingGraphics = this.add.graphics(xMapOffset, yMapOffset);
 
-        // const arcSettings = [400, 300, 200, Phaser.Math.DegToRad(90), Phaser.Math.DegToRad(180), false, '#ffffff'];
-        // // new MyArc(this, ...arcSettings);
+        const arcSettings = [400, 300, 200, Phaser.Math.DegToRad(90), Phaser.Math.DegToRad(180), false, '#ffffff'];
+        // new MyArc(this, ...arcSettings);
 
-        // // new HexagonGridOutline(this, new HexagonAxialGrid(2, 48), 500, 500);
-        // mapGrid = new RectangleGrid(60, 36, 12);
-        // new HexagonGridLines(this, mapGrid, xMapOffset, yMapOffset);
+        // new HexagonGridOutline(this, new HexagonAxialGrid(2, 48), 500, 500);
+        mapGrid = new RectangleGrid(60, 30, 16);
+        new HexagonGridLines(this, mapGrid, xMapOffset, yMapOffset);
 
 
 
-        // this.setupInputs();
+        this.setupInputs(xMapOffset, yMapOffset);
       }
 
       // Function to highlight a tile
@@ -95,7 +98,7 @@
       //   graphics2.strokeHexagon(tileWorldPos.x + tileWidth / 2, tileWorldPos.y + tileHeight / 2, tileWidth / 2);
       // }
 
-      setupInputs() {
+      setupInputs(xMapOffset, yMapOffset) {
         const resizeGame = (gameSize, baseSize, displaySize, resolution) => {
             const width = gameSize.width;
             const height = gameSize.height;
@@ -496,7 +499,7 @@
 
         function drawHexagon(hexagonVetices, hexColor) {
           // set a fill and line style
-          graphics.fillStyle(Phaser.Display.Color.HexStringToColor(hexColor).color, 1.0);
+          graphics.fillStyle(Phaser.Display.Color.HexStringToColor(hexColor).color, useDebugFill? 0.5: 0.0);
 
           graphics.beginPath()
           const startPixel = hexagonVetices[0];
@@ -507,7 +510,10 @@
             graphics.lineTo(x, y);
           }
           graphics.lineTo(startPosition.x, startPosition.y)
-          // graphics.stroke()
+          if(useDebugOutline) {
+            graphics.lineStyle(6, 0x000000, .25);
+            graphics.stroke();
+          }
           graphics.closePath()
           graphics.fillPath();
         }
